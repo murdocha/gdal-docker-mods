@@ -128,15 +128,17 @@ git init
 Then these steps to transfer selected directory and history to the new destination repo:
 
 ```
-git remote add modified-source c:\projects\gdal-docker-stuff\backup\gdal\docker
+git remote add modified-source c:\projects\gdal-docker-stuff\backup\gdal
 git pull modified-source master --allow-unrelated-histories
 ```
 
 Down to a Git history (.git file size) of just 138kb! Some progress!
 Then I moved the entire destination folder (with .git folder) to my desired folder name and location.
-and added the new remote to my GitHub page (this online repo).
+Then removed the temp remote and added the new remote to my GitHub page (this online repo).
+I am using a top level branch of "main" while GDAL repo used "master".
 
 ```
+git remote rm modified-source
 git remote add origin https://github.com/murdocha/gdal-docker-mods2.git
 git push -u origin main
 ```
