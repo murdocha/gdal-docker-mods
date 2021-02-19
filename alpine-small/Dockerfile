@@ -4,6 +4,8 @@
 # This file is available at the option of the licensee under:
 # Public domain
 # or licensed under X/MIT (LICENSE.TXT) Copyright 2019 Even Rouault <even.rouault@spatialys.com>
+#
+# modifed Andrew Murdoch 19 Feb 2021
 
 ARG ALPINE_VERSION=3.12
 FROM alpine:${ALPINE_VERSION} as builder
@@ -19,7 +21,9 @@ RUN apk add --no-cache \
     linux-headers \
     curl-dev tiff-dev \
     zlib-dev zstd-dev \
-    libjpeg-turbo-dev libpng-dev libwebp-dev expat-dev postgresql-dev openjpeg-dev
+    libjpeg-turbo-dev libpng-dev libwebp-dev expat-dev postgresql-dev openjpeg-dev \
+    # Added this for ODBC (and MSSQLSpatial) support within GDAL build:
+    unixodbc-dev
 
 # Build openjpeg
 #ARG OPENJPEG_VERSION=2.3.1
@@ -159,10 +163,21 @@ RUN apk add --no-cache \
         libcurl tiff \
         zlib zstd-libs\
         libjpeg-turbo libpng openjpeg libwebp expat libpq \
+    # Added this for GDAL ODBC external dependency
+    unixodbc \
+    # Add NPM (and NodeJS dependency of npm)
+    npm \
+    # Add Curl for MS SQL ODBC driver download
+    curl \
     # libturbojpeg.so is not used by GDAL. Only libjpeg.so*
     && rm -f /usr/lib/libturbojpeg.so* \
     # Only libwebp.so is used by GDAL
     && rm -f /usr/lib/libwebpmux.so* /usr/lib/libwebpdemux.so* /usr/lib/libwebpdecoder.so*
+
+# For latest MS SQL Server ODBC driver (from: https://docs.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server?view=sql-server-ver15#alpine17)
+RUN curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/msodbcsql17_17.7.1.1-1_amd64.apk \
+    && apk add --allow-untrusted msodbcsql17_17.7.1.1-1_amd64.apk \
+    && rm -f msodbcsql17_17.7.1.1-1_amd64.apk
 
 # Order layers starting with less frequently varying ones
 #COPY --from=builder  /build_thirdparty/usr/ /usr/

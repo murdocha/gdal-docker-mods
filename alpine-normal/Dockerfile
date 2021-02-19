@@ -4,6 +4,8 @@
 # This file is available at the option of the licensee under:
 # Public domain
 # or licensed under X/MIT (LICENSE.TXT) Copyright 2019 Even Rouault <even.rouault@spatialys.com>
+#
+# modifed Andrew Murdoch 19 Feb 2021
 
 ARG ALPINE_VERSION=3.12
 FROM alpine:${ALPINE_VERSION} as builder
@@ -31,6 +33,8 @@ RUN apk add --no-cache \
     py3-numpy-dev python3-dev py3-numpy \
     ${POPPLER_DEV} postgresql-dev \
     openexr-dev libheif-dev xerces-c-dev geos-dev cfitsio-dev \
+    # Added this for ODBC (and MSSQLSpatial) support within GDAL build:
+    unixodbc-dev \
     # For spatialite (and GDAL)
     libxml2-dev \
     && mkdir -p /build_thirdparty/usr/lib
@@ -366,6 +370,7 @@ RUN date
 
 ARG POPPLER=poppler
 RUN apk add --no-cache \
+        curl \
         libstdc++ \
         sqlite-libs \
         libcurl tiff \
@@ -374,6 +379,8 @@ RUN apk add --no-cache \
         icu-libs \
         python3 py3-numpy ${POPPLER} pcre libpq libxml2 portablexdr openjpeg \
         openexr libheif xerces-c geos cfitsio minizip \
+        # Added this for ODBC external dependency
+        unixodbc \
     # Remove /usr/lib/libopenjp2.so.2.3.0 since we are building v2.3.1 manually
     # && rm -f /usr/lib/libopenjp2.so.2.3.0 \
     # libturbojpeg.so is not used by GDAL. Only libjpeg.so*
@@ -382,7 +389,11 @@ RUN apk add --no-cache \
     && rm -f /usr/lib/libpoppler-cpp.so* \
     # Only libwebp.so is used by GDAL
     && rm -f /usr/lib/libwebpmux.so* /usr/lib/libwebpdemux.so* /usr/lib/libwebpdecoder.so* \
-    && ln -s /usr/bin/python3 /usr/bin/python
+    && ln -s /usr/bin/python3 /usr/bin/python \
+    # For latest MS SQL Server ODBC driver (from: https://docs.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server?view=sql-server-ver15#alpine17)
+    && curl -O https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/msodbcsql17_17.7.1.1-1_amd64.apk \
+    && echo y | apk add --allow-untrusted msodbcsql17_17.7.1.1-1_amd64.apk \
+    && rm -f msodbcsql17_17.7.1.1-1_amd64.apk
 
 # Order layers starting with less frequently varying ones
 COPY --from=builder  /build_thirdparty/usr/ /usr/
